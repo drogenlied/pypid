@@ -21,13 +21,12 @@ import time as _time
 from . import LOG as _LOG
 from . import rules as _rules
 from .backend import get_backend as _get_backend
-from controller import Controller as _Controller
+from .controller import Controller as _Controller
 
 
 def test_backend(backend=None):
     internal_backend = False
     if not backend:
-        internal_backend = True
         backend = _get_backend('test')()
     try:
         sp = backend.get_setpoint()
@@ -41,13 +40,12 @@ def test_backend(backend=None):
         _check_max_mv(backend=backend)
         _set_and_check_setpoint(backend=backend, setpoint=sp)
     finally:
-        if internal_backend:
-            backend.cleanup()
+        backend.cleanup()
 
 def _set_and_check_setpoint(backend, setpoint):
     _LOG.info('setting setpoint to {:n} {}'.format(setpoint, backend.pv_units))
-    c.set_setpoint(setpoint)
-    sp = c.get_setpoint()
+    backend.set_setpoint(setpoint)
+    sp = backend.get_setpoint()
     _LOG.info('SP = {:n} {}'.format(sp, backend.pv_units))
     if sp != setpoint:
         msg = 'read setpoint {:n} != written setpoint {:n}'.format(
@@ -55,13 +53,13 @@ def _set_and_check_setpoint(backend, setpoint):
         _LOG.error(msg)
         raise Exception(msg)
 
-def _check_max_current(backend):
+def _check_max_mv(backend):
     # give the backend some time to overcome any integral gain
     _time.sleep(10)
-    MV = c.get_mv()
+    MV = backend.get_mv()
     _LOG.info('MV = {:n} {}'.format(MV, backend.mv_units))
-    mMV = c.get_max_mv()
-    if mv != mMV:
+    mMV = backend.get_max_mv()
+    if MV != mMV:
         PV = backend.get_pv()
         SP = backend.get_setpoint()
         PVu = backend.pv_units
@@ -73,9 +71,7 @@ def _check_max_current(backend):
         raise Exception(msg)
 
 def test_controller_step_response(backend=None, setpoint=1):
-    internal_backend = False
     if not backend:
-        internal_backend = True
         backend = _get_backend('test')()
     try:
         backend.set_mode('PID')
@@ -112,13 +108,10 @@ def test_controller_step_response(backend=None, setpoint=1):
                     '{} step response {}: p {:n}, i {:n}, d {:n}'.format(
                         name, mode, p, i, d))
     finally:
-        if internal_backend:
-            backend.cleanup()
+        backend.cleanup()
 
 def test_controller_bang_bang_response(backend=None, setpoint=1):
-    internal_backend = False
     if not backend:
-        internal_backend = True
         backend = _get_backend('test')()
     try:
         backend.set_setpoint(setpoint)
@@ -144,5 +137,4 @@ def test_controller_bang_bang_response(backend=None, setpoint=1):
                     '{} bang-bang response {}: p {:n}, i {:n}, d {:n}'.format(
                         name, mode, p, i, d))
     finally:
-        if internal_backend:
-            backend.cleanup()
+        backend.cleanup()
