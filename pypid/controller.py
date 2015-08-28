@@ -16,8 +16,8 @@
 
 import time as _time
 
-from aubio.aubioclass import pitch as _pitch
-from aubio.aubioclass import fvec as _fvec
+from aubio import pitch as _pitch
+from aubio import fvec as _fvec
 from numpy import array as _array
 from numpy import exp as _exp
 from numpy import linspace as _linspace
