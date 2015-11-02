@@ -40,8 +40,8 @@ class Controller (object):
     max: float
         maximum PV in PV-units (for sanity checks)
     """
-    def __init__(self, backend, setpoint=0.0, min=-float('inf'),
-                 max=float('inf')):
+    def __init__(self, backend, setpoint=0.0, min=-float(10**15),
+                 max=float(10**15)):
         self._backend = backend
         self._setpoint = setpoint
         self._min_pv = min
@@ -243,25 +243,22 @@ class Controller (object):
             self._backend.set_mode('PID')
         i=0
         setpoint = self._backend.get_setpoint()
-        self._backend.set_down_gains(float('inf'), float('inf'), 0)
-        self._backend.set_up_gains(float('inf'), float('inf'), 0)
+        self._backend.set_down_gains(float(10**15), float(10**15), 0)
+        self._backend.set_up_gains(float(10**15), float(10**15), 0)
         start_time = _time.time()
         pv = self.get_pv()
-        under_first = self._is_under(
-            pv=pv, setpoint=setpoint, dead_band=dead_band)
+        under_first = self._is_under(pv=pv, setpoint=setpoint, dead_band=dead_band)
         _LOG.debug('wait to exit dead band')
         t = start_time
         while under_first is None:
             if t - start_time > max_dead_band_time:
-                msg = 'still in dead band after after {:n} seconds'.format(
-                    max_dead_band_time)
+                msg = 'still in dead band after after {:n} seconds'.format(max_dead_band_time)
                 _LOG.error(msg)
                 raise ValueError(msg)
             _time.sleep(sleep_time)
             t = _time.time()
-            pv = t.get_pv()
-            under_first = self._is_under(
-                pv=pv, setpoint=setpoint, dead_band=dead_band)        
+            pv = self.get_pv()
+            under_first = self._is_under(pv=pv, setpoint=setpoint, dead_band=dead_band)        
         _LOG.debug('read {:d} oscillations'.format(num_oscillations))
         data = []
         under = under_first
@@ -271,13 +268,12 @@ class Controller (object):
             # drop first half cycle (possibly includes ramp to setpoint)
             if i > 0:
                 data.append((t, pv))
-            _under = self._is_under(
-                temp=temp, setpoint=setpoint, dead_band=dead_band)
+            _under = self._is_under(pv=pv, setpoint=setpoint, dead_band=dead_band)
             if _under is True and under is False:
                 _LOG.debug('transition to PV < SP (i={:d})'.format(i))
                 under = _under
                 i += 1
-            elif under is False and is_under is True:
+            elif under is False and _under is True:
                 _LOG.debug('transition to PV > SP (i={:d})'.format(i))
                 under = _under
                 i += 1
